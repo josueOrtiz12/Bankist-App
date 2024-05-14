@@ -80,9 +80,53 @@ const displayMovements = function(movements){
 } 
 displayMovements(account1.movements);
 
+/***calc Print Balance Funtion */
+const calcPrintBalance = function(movement){
+  const balance = movement.reduce(function(acc , mov){
+    return acc + mov;
+  } , 0);
+  labelBalance.textContent = `${balance} EUR`;
+}
+calcPrintBalance(account1.movements);
+/***calc Print Balance Funtion */
 
-const createUserName = function(accs){
+/***Print Deposit Funtion */
+// const prinDeposit = function(movement){
+//   const deposit = movement.filter(function(mov){
+//     return mov > 0;
+//   });
+//   const balanceDeposit = deposit.reduce(function(acc , mov){
+//     return acc + mov;
+//   }, 0);
+//   labelSumIn.textContent = `${balanceDeposit} €`;
+//   console.log(balanceDeposit);
+// }
+// prinDeposit(account1.movements);
 
+
+/********calc Display Summary */
+const calcDisplaySummary = function(movement){
+  const totalDeposit = movement.filter(function(mov){
+    return mov > 0;
+  }).reduce(function(acc , mov){
+    return acc + mov;
+  } , 0);
+  labelSumIn.textContent = `${totalDeposit} €`;
+
+  
+  const totalWithdrawal = movement.filter(function(mov){
+    return mov < 0;
+  }).reduce(function(acc , mov){
+    return acc + mov
+  } , 0);
+  labelSumOut.textContent = `${Math.abs(totalWithdrawal)} € `;
+
+}
+calcDisplaySummary(account1.movements);
+/********calc Display Summary */
+
+
+const createUserName = function(accs){ 
   accs.forEach(function(acc){
    acc.userName = acc.owner.toLowerCase().split(' ').map(function(word){
       return word[0]
@@ -93,4 +137,5 @@ const createUserName = function(accs){
 
 createUserName(accounts);
 
-console.log(accounts);
+
+
