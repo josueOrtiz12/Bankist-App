@@ -62,6 +62,9 @@ const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
 
+const mensajeModal = document.querySelector('.mensage-modal');
+
+
 /***Print Deposit Funtion */
 // const prinDeposit = function(movement){
 //   const deposit = movement.filter(function(mov){
@@ -90,11 +93,22 @@ createUserName(accounts);
 
 let currentAccount;
 
+
+const updateUi = function(acc){
+   //Display movements 
+   displayMovements(acc.movements);
+   // Display balance
+   calcPrintBalance(acc);
+
+   // Displyas summary
+   calcDisplaySummary(acc);
+}
+
+
+
 btnLogin.addEventListener('click' , function(e){
   //Prevent form from submitting
   e.preventDefault()
-  
-//  console.log(inputLoginUsername);
     currentAccount = accounts.find(function(acco){
       return acco.userName === inputLoginUsername.value;
   });
@@ -104,13 +118,8 @@ btnLogin.addEventListener('click' , function(e){
     labelWelcome.textContent = `Welcome back ${currentAccount.owner}`;
     containerApp.style.opacity = 100;
 
-    //Display movements 
-    displayMovements(currentAccount.movements);
-    // Display balance
-    calcPrintBalance(currentAccount.movements);
-
-    // Displyas summary
-    calcDisplaySummary(currentAccount);
+    /**Update UI */
+    updateUi(currentAccount);
     
     //Clear input fileds
      inputLoginPin.value = '';
@@ -121,8 +130,10 @@ btnLogin.addEventListener('click' , function(e){
   }
    else{
     containerApp.style.opacity = 0;
+    mensajeModal.textContent = `Incorrect username or password, try again..`
     openModal();
    }
+   console.log(currentAccount.movements);
 });
 
 const displayMovements = function(movements){
@@ -143,10 +154,11 @@ const displayMovements = function(movements){
 } 
 
 /***calc Print Balance Funtion */
-const calcPrintBalance = function(movement){
-  const balance = movement.reduce(function(acc , mov){
+const calcPrintBalance = function(acc){
+  const balance = acc.movements.reduce(function(acc , mov){
     return acc + mov;
   } , 0);
+  acc.balance = balance;
   labelBalance.textContent = `${balance} EUR`;
 }
 
@@ -154,9 +166,8 @@ const calcPrintBalance = function(movement){
 
 
 /********calc Display Summary */
-const calcDisplaySummary = function(account){
-  // console.log(account);
-  const totalDeposit = account.movements.filter(function(mov){
+const calcDisplaySummary = function(acc){
+  const totalDeposit = acc.movements.filter(function(mov){
     return mov > 0;
   }).reduce(function(acc , mov){
     return acc + mov;
@@ -164,7 +175,7 @@ const calcDisplaySummary = function(account){
   labelSumIn.textContent = `${totalDeposit} €`;
 
 
-  const totalWithdrawal = account.movements.filter(function(mov){
+  const totalWithdrawal = acc.movements.filter(function(mov){
     return mov < 0;
   }).reduce(function(acc , mov){
     return acc + mov
@@ -172,10 +183,10 @@ const calcDisplaySummary = function(account){
   labelSumOut.textContent = `${Math.abs(totalWithdrawal)} € `;
 
 
-  const interest = account.movements.filter(function(mov){
+  const interest = acc.movements.filter(function(mov){
       return mov > 0;
   }).map(function(deposit){
-    return (deposit * account.interestRate)/ 100;
+    return (deposit * acc.interestRate)/ 100;
   })
   .filter(function(inter, i ,arr){
     return inter >= 1;
@@ -214,24 +225,110 @@ document.addEventListener('keydown', function(e){
 })
 
 
-const transfer = function(transfTo , amount){
+const transfer = function(transfTo , amount , acc){
   const accountFind = accounts.find(function(acc){
     return acc.userName === transfTo
   });
-  if(accountFind?.userName === transfTo){
-    console.log(`transferencia hecha a ${transfTo}  de ${amount} con exito`);
+  if(accountFind?.userName === transfTo && acc != undefined && transfTo != acc.userName){
+    // console.log(`transferencia hecha de ${acc.owner} a ${transfTo}  de ${amount} con exito`);
+    /**doing transference */
+    accountFind.movements.push(amount);
+    currentAccount.movements.push(-amount);
+
+    /**update */
+    updateUi(currentAccount);
+
   }else{
-    console.log(`tranferecia rechazada`);
+    mensajeModal.textContent =`transfer rejected` ;
+    openModal()
   }
 
 }
 
 
 
+
+
 btnTransfer.addEventListener('click' , function(e){
   e.preventDefault()
   const userToTransfer = inputTransferTo.value;
-  const amountToTransfer = inputTransferAmount.value;
-  transfer(userToTransfer , amountToTransfer)
+  const amountToTransfer = Number(inputTransferAmount.value);
+  if(amountToTransfer > 0 && currentAccount.balance >= amountToTransfer ){
+    transfer(userToTransfer , amountToTransfer, currentAccount)
+  }
+  else{
+    mensajeModal.textContent = `Invalid amount or user`
+    openModal()
+  }
+ 
+
 })
 
+
+btnLoan.addEventListener('click' , function(e){ 
+    e.preventDefault();
+
+
+    const amount = Number(inputLoanAmount.value);
+    if(amount > 0  && currentAccount?.movements.some(function(mov){
+      return mov >= amount * 0.1;
+    }) && amount <= 1500){
+
+      const loanAmount = Number(inputLoanAmount.value)
+      currentAccount.movements.push(loanAmount);
+      updateUi(currentAccount);
+     
+    }else{
+      mensajeModal.textContent =`Loand Amount Denied, We lend them up to 1500` ;
+      openModal()
+    }
+
+    inputLoanAmount.value = '';
+})
+
+
+
+/**Deleted account with map */
+
+
+btnClose.addEventListener('click' , function(e){
+  e.preventDefault();
+  if(inputCloseUsername.value === currentAccount?.userName && Number(inputClosePin.value) === currentAccount?.pin){
+    
+    //Find index of account 
+    const index = accounts.findIndex(function(acc){
+      return acc.userName === currentAccount.userName;
+    })
+    
+    //Deleted account
+    accounts.splice( index , 1);
+    
+    
+    //Hide uI
+    containerApp.style.opacity = 0;
+    console.log('Delete account')
+ 
+  }else{
+    mensajeModal.textContent = `Error deleting account `
+    openModal();
+  }
+
+  inputCloseUsername.value = '';
+  inputClosePin.value = ''; 
+})
+
+
+btnSort.addEventListener('click' , function(e){
+  e.preventDefault()
+  console.log(currentAccount.movements);
+currentAccount.movements.sort(function(a , b){
+    if(a > b){
+      return -1;
+    }
+    if(a < b){
+      return 1
+    }
+  });
+  /**update */
+  updateUi(currentAccount);
+})
